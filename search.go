@@ -27,9 +27,6 @@ func getTwitterApi() *anaconda.TwitterApi {
 func main() {
 	loadEnv()
 
-	v := url.Values{}
-	v.Set("count", "30")
-
 	targetAccountList := configureTargetAccount()
 	printTweet(targetAccountList)
 }
@@ -50,6 +47,10 @@ func printTweet(userIdList []string) {
 	v.Set("count", "200")
 
 	for _, userId := range userIdList {
+		fmt.Println("------Start----------")
+		fmt.Println(userId)
+		fmt.Println("---------------------")
+
 		v.Set("screen_name", userId)
 		targetUsersTweet, err := api.GetUserTimeline(v)
 		if err != nil {
@@ -57,12 +58,20 @@ func printTweet(userIdList []string) {
 			fmt.Println(err)
 		}
 
+		matchTweetCount := 0
 		for _, tweet := range targetUsersTweet {
 			if strings.Contains(tweet.FullText, os.Getenv("TARGET")) {
 				str := "https://twitter.com/" + tweet.User.ScreenName + "/status/" + strconv.FormatInt(tweet.Id, 10)
 				fmt.Println(tweet.FullText)
 				fmt.Println(str)
+				matchTweetCount++
 			}
 		}
+
+		fmt.Println("------Finish---------")
+		fmt.Print(userId)
+		fmt.Print(" Result: ")
+		fmt.Println(matchTweetCount)
+		fmt.Println("---------------------")
 	}
 }
