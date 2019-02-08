@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/joho/godotenv"
+	"golang.org/x/text/width"
 	"log"
 	"net/url"
 	"os"
@@ -26,9 +27,10 @@ func getTwitterApi() *anaconda.TwitterApi {
 
 func main() {
 	loadEnv()
-
 	targetAccountList := configureTargetAccount()
-	printTweet(targetAccountList)
+	keywordPatterns := generateKeywordPattern()
+	filterTweets := filterTweet(targetAccountList, keywordPatterns)
+	printTweet(filterTweets)
 }
 
 func configureTargetAccount() []string {
@@ -41,37 +43,42 @@ func configureTargetAccount() []string {
 	return targetIdList
 }
 
-func printTweet(userIdList []string) {
+func filterTweet(userIdList []string, keywordPatterns []string) []anaconda.Tweet {
 	api := getTwitterApi()
 	v := url.Values{}
 	v.Set("count", "200")
 
+	targetUsersTweets := []anaconda.Tweet{}
 	for _, userId := range userIdList {
-		fmt.Println("------Start----------")
-		fmt.Println(userId)
-		fmt.Println("---------------------")
-
 		v.Set("screen_name", userId)
-		targetUsersTweet, err := api.GetUserTimeline(v)
+		tweets, err := api.GetUserTimeline(v)
 		if err != nil {
 			fmt.Println("****************occur error*************")
 			fmt.Println(err)
 		}
 
-		matchTweetCount := 0
-		for _, tweet := range targetUsersTweet {
-			if strings.Contains(tweet.FullText, os.Getenv("TARGET")) {
-				str := "https://twitter.com/" + tweet.User.ScreenName + "/status/" + strconv.FormatInt(tweet.Id, 10)
-				fmt.Println(tweet.FullText)
-				fmt.Println(str)
-				matchTweetCount++
+		for _, tweet := range tweets {
+			for _, keywordPattern := range keywordPatterns {
+				if strings.Contains(tweet.FullText, keywordPattern) {
+					targetUsersTweets = append(targetUsersTweets, tweet)
+				}
 			}
 		}
-
-		fmt.Println("------Finish---------")
-		fmt.Print(userId)
-		fmt.Print(" Result: ")
-		fmt.Println(matchTweetCount)
-		fmt.Println("---------------------")
 	}
+	return targetUsersTweets
+}
+
+func printTweet(targetUsersTweet []anaconda.Tweet) {
+	for _, tweet := range targetUsersTweet {
+		fmt.Println(tweet.FullText)
+		url := "https://twitter.com/" + tweet.User.ScreenName + "/status/" + strconv.FormatInt(tweet.Id, 10)
+		fmt.Println(url)
+	}
+}
+
+func generateKeywordPattern() []string {
+	var keywordPattern []string
+	keywordPattern = append(keywordPattern, os.Getenv("TARGET"))
+	keywordPattern = append(keywordPattern, width.Narrow.String(os.Getenv("TARGET")))
+	return keywordPattern
 }

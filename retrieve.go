@@ -1,14 +1,14 @@
 package main
 
 import (
+	"cloud.google.com/go/firestore"
 	"context"
 	"firebase.google.com/go"
-	"fmt"
 	"google.golang.org/api/option"
 	"log"
 )
 
-func getFirebaseClient() {
+func getFirestoreClient() *firestore.Client{
 	// Use the application default credentials.
 	opt := option.WithCredentialsFile("serviceAccountKey.json")
 
@@ -28,8 +28,9 @@ func getFirebaseClient() {
 	if err != nil {
 		log.Fatalf("app.Firestore: %v", err)
 	}
+	return client
+}
 
-	docs :=client.Collection("groupie_user_accounts").Documents(ctx)
-	doc,_ := docs.Next()
-	fmt.Println(doc.Data())
+func getDocs(collectionName string, client *firestore.Client) *firestore.DocumentIterator{
+	return client.Collection(collectionName).Documents(context.Background())
 }
